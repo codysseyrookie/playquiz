@@ -82,3 +82,10 @@
 - [x] 수정된 workflow로 GitHub Pages 정적 export와 배포 산출물을 검증한다.
 - [x] GitHub Actions Metro SHA-1 캐시 오류를 수정한다.
 - [x] GitHub Pages workflow에서 정적 export를 재검증한다.
+- [x] CI에서 react-native-css-interop SHA-1 오류가 반복되지 않도록 export 준비 단계를 보완한다.
+- [x] 보완된 workflow의 export와 Pages 산출물을 재검증한다.
+- [x] GitHub Pages workflow·YAML·권한·404 배포 경로를 전체 점검한다.
+- [x] Metro·NativeWind CI export와 정적 라우트 자산 경로를 전체 점검한다.
+- [x] 저장·복원·관리·시험 핵심 흐름의 예상 오류를 점검한다.
+- [x] 전체 수정 후 타입·테스트·정적 export를 재검증한다.
+- [ ] 전체 점검이 반영된 최신 Windows용 프로젝트 ZIP을 생성한다.
