@@ -122,6 +122,7 @@ const config: ExpoConfig = {
     ],
   ],
   experiments: {
+    baseUrl: "/playquiz",
     typedRoutes: true,
     reactCompiler: true,
   },
