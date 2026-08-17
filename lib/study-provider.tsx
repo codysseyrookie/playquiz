@@ -1,13 +1,14 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { Attempt, ExamResult, Problem, ProblemSet, Subject, gradeAnswers, problems as seedProblems, problemSets as seedSets, subjects as seedSubjects } from "@/lib/study-data";
+import { loadStudyStorage, saveStudyStorage } from "@/lib/study-storage";
 import { ParsedProblemSet } from "@/lib/markdown-import";
 
 type NewProblem = Omit<Problem, "id" | "subject" | "acceptedAnswers"> & { acceptedAnswers?: string[]; problemSetId: string };
 
 type StudyContextValue = {
   isReady: boolean;
+  storageStatus: "loading" | "ready" | "error";
   activeExamTitle: string;
   activeProblemIds: string[];
   answers: Record<string, string>;
@@ -27,12 +28,11 @@ type StudyContextValue = {
   importProblemSet: (payload: ParsedProblemSet) => { set: ProblemSet; problemCount: number } | undefined;
 };
 
-const HISTORY_KEY = "problem-solving-study-history-v1";
-const LIBRARY_KEY = "problem-solving-library-v2";
 const StudyContext = createContext<StudyContextValue | undefined>(undefined);
 
 export function StudyProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
+  const [storageStatus, setStorageStatus] = useState<"loading" | "ready" | "error">("loading");
   const [activeExamTitle, setActiveExamTitle] = useState("1일차 오전 학습문제");
   const [activeProblemIds, setActiveProblemIds] = useState(seedSets[0].problemIds);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -42,27 +42,34 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [problemSets, setProblemSets] = useState<ProblemSet[]>(seedSets);
 
   useEffect(() => {
-    Promise.all([AsyncStorage.getItem(HISTORY_KEY), AsyncStorage.getItem(LIBRARY_KEY)]).then(([historyStored, libraryStored]) => {
-      if (historyStored) setHistory(JSON.parse(historyStored) as ExamResult[]);
-      if (libraryStored) {
-        const library = JSON.parse(libraryStored) as { subjects: Subject[]; problems: Problem[]; problemSets: ProblemSet[] };
+    let cancelled = false;
+    loadStudyStorage().then(({ history: storedHistory, library }) => {
+      if (cancelled) return;
+      setHistory(storedHistory);
+      if (library) {
         setSubjects(library.subjects);
         setLibraryProblems(library.problems);
         setProblemSets(library.problemSets);
         if (library.problemSets[0]) setActiveProblemIds(library.problemSets[0].problemIds);
       }
-    }).finally(() => setIsReady(true));
+      setStorageStatus("ready");
+      setIsReady(true);
+    }).catch(() => {
+      if (cancelled) return;
+      setStorageStatus("error");
+      setIsReady(false);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
-    if (isReady) {
-      AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-      AsyncStorage.setItem(LIBRARY_KEY, JSON.stringify({ subjects, problems: libraryProblems, problemSets }));
-    }
-  }, [history, subjects, libraryProblems, problemSets, isReady]);
+    if (storageStatus !== "ready") return;
+    saveStudyStorage(history, { subjects, problems: libraryProblems, problemSets }).catch(() => setStorageStatus("error"));
+  }, [history, subjects, libraryProblems, problemSets, storageStatus]);
 
   const value = useMemo<StudyContextValue>(() => ({
     isReady,
+    storageStatus,
     activeExamTitle,
     activeProblemIds,
     answers,
@@ -126,7 +133,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       setProblemSets((current) => [...current, set]);
       return { set, problemCount: importedProblems.length };
     },
-  }), [activeExamTitle, activeProblemIds, answers, history, subjects, libraryProblems, problemSets, isReady]);
+  }), [activeExamTitle, activeProblemIds, answers, history, subjects, libraryProblems, problemSets, isReady, storageStatus]);
 
   return <StudyContext.Provider value={value}>{children}</StudyContext.Provider>;
 }

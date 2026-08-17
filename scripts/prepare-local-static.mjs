@@ -1,4 +1,32 @@
-<!doctype html>
+import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+import path from "node:path";
+
+const root = path.resolve("dist");
+
+async function filesIn(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...(await filesIn(fullPath)));
+    else files.push(fullPath);
+  }
+  return files;
+}
+
+const files = await filesIn(root);
+for (const file of files) {
+  const extension = path.extname(file).toLowerCase();
+  if (![".html", ".js", ".css"].includes(extension)) continue;
+  const original = await readFile(file, "utf8");
+  const updated = original
+    .replaceAll('="/_expo/', '="./_expo/')
+    .replaceAll("url(/_expo/", "url(./_expo/")
+    .replaceAll('"/_expo/', '"./_expo/');
+  if (updated !== original) await writeFile(file, updated, "utf8");
+}
+
+const githubPages404 = `<!doctype html>
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
@@ -46,3 +74,8 @@
     </script>
   </body>
 </html>
+`;
+
+await writeFile(path.join(root, "404.html"), githubPages404, "utf8");
+console.log("Prepared dist for local index.html usage and generated GitHub Pages 404.html.");
+void stat(root);

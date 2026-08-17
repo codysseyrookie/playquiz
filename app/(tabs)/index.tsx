@@ -21,6 +21,7 @@ export default function HomeScreen() {
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
       <FlatList
+        style={styles.list}
         data={problemSets}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
@@ -89,7 +90,8 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 16, paddingBottom: 28, gap: 12 },
+  list: { flex: 1 },
+  content: { paddingTop: 16, paddingBottom: 120, gap: 12 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 22 },
   kicker: { color: "#697386", fontSize: 14, lineHeight: 20, fontWeight: "600" },
   title: { color: "#1D2433", fontSize: 25, lineHeight: 32, fontWeight: "800", letterSpacing: -0.6 },

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -62,13 +62,14 @@ export default function ExamScreen() {
 
         <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${((index + 1) / Math.max(1, examProblems.length)) * 100}%` }]} /></View>
 
-        <View style={styles.problemMeta}>
-          <Text style={styles.subject}>{problem.subject}</Text>
-          <Text style={styles.label}>{problem.label}</Text>
-        </View>
-        <Text style={styles.question}>{problem.question}</Text>
+        <ScrollView style={styles.problemScroll} contentContainerStyle={styles.problemScrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.problemMeta}>
+            <Text style={styles.subject}>{problem.subject}</Text>
+            <Text style={styles.label}>{problem.label}</Text>
+          </View>
+          <Text style={styles.question}>{problem.question}</Text>
 
-        <View style={styles.answerArea}>
+          <View style={styles.answerArea}>
           {problem?.type === "multiple" ? (
             problem.choices?.map((choice, choiceIndex) => {
               const selected = answers[problem.id] === choice;
@@ -85,7 +86,8 @@ export default function ExamScreen() {
               <TextInput value={answers[problem.id] ?? ""} onChangeText={(value) => setAnswer(problem.id, value)} placeholder="예: 대류" placeholderTextColor="#A3ACBD" autoCapitalize="none" returnKeyType="done" style={styles.input} />
             </View>
           )}
-        </View>
+          </View>
+        </ScrollView>
 
         <View style={styles.footer}>
           <Pressable disabled={index === 0} onPress={() => setIndex((current) => Math.max(0, current - 1))} style={({ pressed }) => [styles.previousButton, index === 0 && styles.disabled, pressed && styles.pressed]}>
@@ -110,6 +112,8 @@ export default function ExamScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, paddingTop: 4 },
+  problemScroll: { flex: 1, marginTop: 0 },
+  problemScrollContent: { paddingBottom: 24 },
   topbar: { flexDirection: "row", alignItems: "center", gap: 11 },
   iconButton: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#E5E8F0", borderRadius: 14, backgroundColor: "#FFFFFF" },
   examMeta: { flex: 1 }, examName: { fontSize: 14, lineHeight: 19, color: "#1D2433", fontWeight: "800" }, timer: { fontSize: 12, lineHeight: 17, color: "#7B879C", fontWeight: "600", marginTop: 1 },
@@ -117,8 +121,8 @@ const styles = StyleSheet.create({
   progressTrack: { height: 5, backgroundColor: "#E5E9F3", borderRadius: 4, marginTop: 21, overflow: "hidden" }, progressFill: { height: 5, backgroundColor: "#3653E8", borderRadius: 4 },
   problemMeta: { flexDirection: "row", gap: 8, marginTop: 34, alignItems: "center" }, subject: { color: "#3653E8", fontSize: 13, fontWeight: "800" }, label: { color: "#7B879C", fontSize: 13, fontWeight: "600" },
   question: { color: "#101828", fontSize: 23, lineHeight: 34, fontWeight: "900", letterSpacing: -0.4, marginTop: 12 },
-  answerArea: { flex: 1, marginTop: 30 }, choice: { minHeight: 62, borderRadius: 16, borderWidth: 1, borderColor: "#E2E7F0", backgroundColor: "#FFFFFF", flexDirection: "row", alignItems: "center", paddingHorizontal: 16, marginBottom: 11 }, choiceSelected: { borderColor: "#3653E8", backgroundColor: "#E3E9FF" },
+  answerArea: { marginTop: 30 }, choice: { minHeight: 62, borderRadius: 16, borderWidth: 1, borderColor: "#E2E7F0", backgroundColor: "#FFFFFF", flexDirection: "row", alignItems: "center", paddingHorizontal: 16, marginBottom: 11 }, choiceSelected: { borderColor: "#3653E8", backgroundColor: "#E3E9FF" },
   choiceMarker: { width: 28, height: 28, borderRadius: 14, backgroundColor: "#F0F2F7", alignItems: "center", justifyContent: "center", marginRight: 12 }, choiceMarkerSelected: { backgroundColor: "#3653E8" }, choiceMarkerText: { color: "#697386", fontSize: 12, fontWeight: "800" }, choiceMarkerTextSelected: { color: "#FFFFFF" }, choiceText: { color: "#101828", fontSize: 15, fontWeight: "800", flex: 1 }, choiceTextSelected: { color: "#172B85" },
   inputBox: { backgroundColor: "#FFFFFF", padding: 18, borderRadius: 17, borderWidth: 1, borderColor: "#E2E7F0" }, inputLabel: { fontSize: 13, color: "#697386", fontWeight: "700", marginBottom: 10 }, input: { minHeight: 50, borderRadius: 12, paddingHorizontal: 14, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#CBD5E1", color: "#101828", fontSize: 17, fontWeight: "800" },
-  footer: { flexDirection: "row", gap: 11, paddingTop: 10 }, previousButton: { height: 54, width: 80, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#EEF1F6" }, disabled: { opacity: 0.42 }, previousText: { color: "#536078", fontSize: 15, fontWeight: "800" }, nextButton: { height: 54, flex: 1, borderRadius: 16, backgroundColor: "#3653E8", flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 7 }, nextText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" }, submitButton: { height: 54, flex: 1, borderRadius: 16, backgroundColor: "#0F9F78", flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 7 }, submitText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" }, pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
+  footer: { flexDirection: "row", gap: 11, paddingTop: 10, paddingBottom: 8 }, previousButton: { height: 54, width: 80, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#EEF1F6" }, disabled: { opacity: 0.42 }, previousText: { color: "#536078", fontSize: 15, fontWeight: "800" }, nextButton: { height: 54, flex: 1, borderRadius: 16, backgroundColor: "#3653E8", flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 7 }, nextText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" }, submitButton: { height: 54, flex: 1, borderRadius: 16, backgroundColor: "#0F9F78", flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 7 }, submitText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" }, pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
 });

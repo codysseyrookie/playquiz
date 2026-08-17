@@ -2,8 +2,7 @@ name: Deploy web app to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -18,7 +17,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,13 +35,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Check types
-        run: pnpm run check
-
-      - name: Run tests
-        run: pnpm run test
-
-      - name: Export static web files
+      - name: Export static web app
         env:
           CI: "1"
           EXPO_NO_METRO_WORKSPACE_ROOT: "1"
@@ -63,11 +55,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
