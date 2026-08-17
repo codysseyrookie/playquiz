@@ -36,7 +36,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfil
+        run: pnpm install --no-frozen-lockfile
 
       - name: Check types
         run: pnpm run check
@@ -45,7 +45,14 @@ jobs:
         run: pnpm run test
 
       - name: Export static web files
+        env:
+        CI: "1"
+        EXPO_NO_METRO_WORKSPACE_ROOT: "1"
         run: pnpm run export:web
+
+      - name: Ensure custom 404 page
+        run: cp 404.html dist/404.html
+
 
       - name: Support GitHub Pages client-side routes
         run: cp dist/index.html dist/404.html
