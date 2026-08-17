@@ -2,7 +2,8 @@ name: Deploy web app to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -17,9 +18,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,7 +31,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - name: Install dependencies
@@ -46,22 +45,30 @@ jobs:
 
       - name: Export static web files
         env:
-        CI: "1"
-        EXPO_NO_METRO_WORKSPACE_ROOT: "1"
+          CI: "1"
+          EXPO_NO_METRO_WORKSPACE_ROOT: "1"
         run: pnpm run export:web
 
       - name: Ensure custom 404 page
         run: cp 404.html dist/404.html
 
-
-      - name: Support GitHub Pages client-side routes
-        run: cp dist/index.html dist/404.html
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
