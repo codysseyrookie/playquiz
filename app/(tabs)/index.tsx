@@ -4,17 +4,19 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { haptic } from "@/lib/haptics";
+import { AnswerCheckMode, resolveAnswerCheckMode } from "@/lib/study-data";
 import { useStudy } from "@/lib/study-provider";
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { beginExam, history, problemSets } = useStudy();
+  const { beginExam, history, problemSets, hasActiveExam, activeExamTitle, activeProblemIds, activeQuestionIndex, answers } = useStudy();
   const latest = history[0];
   const correct = latest?.score ?? 0;
+  const activeAnsweredCount = activeProblemIds.filter((problemId) => answers[problemId]?.trim()).length;
 
-  const startExam = (title: string, problemIds: string[]) => {
+  const startExam = (title: string, problemIds: string[], answerCheckMode?: AnswerCheckMode) => {
     haptic.light();
-    beginExam(title, problemIds);
+    beginExam(title, problemIds, resolveAnswerCheckMode(answerCheckMode));
     router.push("/exam" as never);
   };
 
@@ -24,6 +26,9 @@ export default function HomeScreen() {
         style={styles.list}
         data={problemSets}
         keyExtractor={(item) => item.id}
+        initialNumToRender={Math.max(problemSets.length, 10)}
+        maxToRenderPerBatch={Math.max(problemSets.length, 10)}
+        removeClippedSubviews={false}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
         ListHeaderComponent={
@@ -43,11 +48,23 @@ export default function HomeScreen() {
               </View>
               <Text style={styles.heroTitle}>10분이면 충분해요.</Text>
               <Text style={styles.heroBody}>핵심 개념 4문제로 오늘의 감각을 깨워보세요.</Text>
-              <Pressable onPress={() => problemSets[0] && startExam(problemSets[0].title, problemSets[0].problemIds)} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
+              <Pressable onPress={() => problemSets[0] && startExam(problemSets[0].title, problemSets[0].problemIds, problemSets[0].answerCheckMode)} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
                 <Text style={styles.primaryButtonText}>시험 시작하기</Text>
                 <IconSymbol name="arrow.right" size={19} color="#FFFFFF" />
               </Pressable>
             </View>
+
+            {hasActiveExam ? (
+              <Pressable onPress={() => router.push("/exam" as never)} style={({ pressed }) => [styles.activeExamCard, pressed && styles.pressed]}>
+                <View style={styles.activeExamIcon}><IconSymbol name="play.fill" size={18} color="#FFFFFF" /></View>
+                <View style={styles.activeExamInfo}>
+                  <Text style={styles.activeExamLabel}>현재 진행 중인 문제집</Text>
+                  <Text style={styles.activeExamTitle} numberOfLines={1}>{activeExamTitle}</Text>
+                  <Text style={styles.activeExamProgress}>현재 {activeQuestionIndex + 1} / {activeProblemIds.length}번 · {activeAnsweredCount}문제 답변</Text>
+                </View>
+                <View style={styles.continueButton}><Text style={styles.continueText}>이어 풀기</Text><IconSymbol name="chevron.right" size={17} color="#3653E8" /></View>
+              </Pressable>
+            ) : null}
 
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>학습 현황</Text>
@@ -69,21 +86,31 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>추천 테스트</Text>
-              <Text style={styles.sectionMeta}>짧고 선명하게</Text>
+              <Text style={styles.sectionTitle}>전체 문제집</Text>
+              <Text style={styles.sectionMeta}>{problemSets.length}개</Text>
             </View>
           </>
         }
-        renderItem={({ item, index }) => (
-          <Pressable onPress={() => startExam(item.title, item.problemIds)} style={({ pressed }) => [styles.examCard, { backgroundColor: item.accent }, pressed && styles.pressed]}>
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <IconSymbol name="book.closed.fill" size={25} color="#9AA3B5" />
+            <Text style={styles.emptyTitle}>등록된 문제집이 없어요</Text>
+            <Text style={styles.emptyBody}>관리 화면에서 문제집을 추가하면 여기에 모두 표시됩니다.</Text>
+          </View>
+        }
+        renderItem={({ item, index }) => {
+          const isActive = hasActiveExam && item.title === activeExamTitle && item.problemIds.length === activeProblemIds.length && item.problemIds.every((id, problemIndex) => id === activeProblemIds[problemIndex]);
+          return (
+          <Pressable onPress={() => isActive ? router.push("/exam" as never) : startExam(item.title, item.problemIds, item.answerCheckMode)} style={({ pressed }) => [styles.examCard, { backgroundColor: item.accent }, isActive && styles.examCardActive, pressed && styles.pressed]}>
             <View style={styles.examIndex}><Text style={styles.examIndexText}>{String(index + 1).padStart(2, "0")}</Text></View>
             <View style={styles.examInfo}>
-              <Text style={styles.examTitle}>{item.title}</Text>
+              <View style={styles.examTitleRow}><Text style={styles.examTitle}>{item.title}</Text>{isActive ? <Text style={styles.activeBadge}>진행 중</Text> : null}</View>
               <Text style={styles.examSubtitle}>{item.subtitle}</Text>
             </View>
             <IconSymbol name="chevron.right" size={22} color="#536078" />
           </Pressable>
-        )}
+          );
+        }}
       />
     </ScreenContainer>
   );
@@ -105,6 +132,14 @@ const styles = StyleSheet.create({
   heroBody: { color: "#536078", fontSize: 14, lineHeight: 21, marginTop: 6, marginBottom: 20 },
   primaryButton: { height: 52, paddingHorizontal: 18, borderRadius: 15, backgroundColor: "#3653E8", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   primaryButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "800" },
+  activeExamCard: { minHeight: 92, padding: 15, borderRadius: 19, backgroundColor: "#FFFFFF", borderWidth: 2, borderColor: "#3653E8", flexDirection: "row", alignItems: "center", marginBottom: 26 },
+  activeExamIcon: { width: 40, height: 40, borderRadius: 14, backgroundColor: "#3653E8", alignItems: "center", justifyContent: "center", marginRight: 11 },
+  activeExamInfo: { flex: 1, minWidth: 0 },
+  activeExamLabel: { color: "#3653E8", fontSize: 11, fontWeight: "900" },
+  activeExamTitle: { color: "#1D2433", fontSize: 15, lineHeight: 21, fontWeight: "900", marginTop: 2 },
+  activeExamProgress: { color: "#697386", fontSize: 12, lineHeight: 18, fontWeight: "700", marginTop: 2 },
+  continueButton: { flexDirection: "row", alignItems: "center", marginLeft: 8 },
+  continueText: { color: "#3653E8", fontSize: 12, fontWeight: "900" },
   sectionHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12, marginTop: 2 },
   sectionTitle: { color: "#1D2433", fontSize: 18, lineHeight: 24, fontWeight: "800" },
   sectionMeta: { color: "#8B95A7", fontSize: 12, fontWeight: "600" },
@@ -112,11 +147,17 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, backgroundColor: "#FFFFFF", borderRadius: 16, paddingVertical: 15, paddingHorizontal: 10, borderWidth: 1, borderColor: "#E8ECF4" },
   statValue: { color: "#1D2433", fontSize: 20, fontWeight: "800", textAlign: "center" },
   statLabel: { color: "#7B879C", fontSize: 11, fontWeight: "600", textAlign: "center", marginTop: 5 },
-  examCard: { padding: 17, borderRadius: 18, flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  examCard: { padding: 17, borderRadius: 18, borderWidth: 2, borderColor: "transparent", flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  examCardActive: { borderColor: "#3653E8" },
   examIndex: { width: 33, height: 33, borderRadius: 11, backgroundColor: "#FFFFFFAA", justifyContent: "center", alignItems: "center", marginRight: 12 },
   examIndexText: { color: "#536078", fontWeight: "800", fontSize: 12 },
   examInfo: { flex: 1 },
-  examTitle: { color: "#1D2433", fontSize: 15, lineHeight: 21, fontWeight: "800" },
+  examTitleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
+  examTitle: { color: "#1D2433", fontSize: 15, lineHeight: 21, fontWeight: "800", flexShrink: 1 },
+  activeBadge: { color: "#FFFFFF", fontSize: 10, lineHeight: 17, fontWeight: "900", backgroundColor: "#3653E8", paddingHorizontal: 7, borderRadius: 8, overflow: "hidden" },
   examSubtitle: { color: "#667085", fontSize: 12, lineHeight: 18, marginTop: 2 },
+  emptyState: { paddingHorizontal: 22, paddingVertical: 28, borderRadius: 18, borderWidth: 1, borderColor: "#E5E8F0", backgroundColor: "#FFFFFF", alignItems: "center" },
+  emptyTitle: { color: "#344054", fontSize: 15, fontWeight: "800", marginTop: 10 },
+  emptyBody: { color: "#7B879C", fontSize: 13, lineHeight: 20, textAlign: "center", marginTop: 5 },
   pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
 });

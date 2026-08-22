@@ -1,4 +1,5 @@
 export type ProblemType = "multiple" | "short" | "long";
+export type AnswerCheckMode = "question" | "exam";
 
 export type Subject = {
   id: string;
@@ -29,6 +30,7 @@ export type ProblemSet = {
   problemIds: string[];
   accent: string;
   isCustom?: boolean;
+  answerCheckMode?: AnswerCheckMode;
 };
 
 export type Attempt = {
@@ -71,11 +73,15 @@ export const problems: Problem[] = [
 ];
 
 export const problemSets: ProblemSet[] = [
-  { id: "day1-morning", title: "1일차 오전 학습문제", subjectId: "dx", subject: "디지털 전환·현장 진단·성과관리", description: "1~3차시 · 개념 구분 · 현장 판단 · 성과검증", subtitle: "14문제 · 디지털 전환 · 성과검증", problemIds: problems.map((problem) => problem.id), accent: "#E8EDFF" },
-  { id: "quick-core", title: "핵심 개념 4문제", subjectId: "dx", subject: "핵심 복습", description: "짧고 선명하게 기본 개념 점검", subtitle: "4문제 · 핵심 개념 점검", problemIds: problems.slice(0, 4).map((problem) => problem.id), accent: "#E6F8F2" },
+  { id: "day1-morning", title: "1일차 오전 학습문제", subjectId: "dx", subject: "디지털 전환·현장 진단·성과관리", description: "1~3차시 · 개념 구분 · 현장 판단 · 성과검증", subtitle: "14문제 · 디지털 전환 · 성과검증", problemIds: problems.map((problem) => problem.id), accent: "#E8EDFF", answerCheckMode: "question" },
+  { id: "quick-core", title: "핵심 개념 4문제", subjectId: "dx", subject: "핵심 복습", description: "짧고 선명하게 기본 개념 점검", subtitle: "4문제 · 핵심 개념 점검", problemIds: problems.slice(0, 4).map((problem) => problem.id), accent: "#E6F8F2", answerCheckMode: "question" },
 ];
 
 export const examSets = problemSets;
+
+export function resolveAnswerCheckMode(value?: AnswerCheckMode): AnswerCheckMode {
+  return value === "exam" ? "exam" : "question";
+}
 
 export function normalizeAnswer(value: string) {
   return value.trim().replace(/[\s.,%％()（）→·]/g, "").toLowerCase();
